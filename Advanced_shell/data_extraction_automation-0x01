@@ -1,0 +1,13 @@
+#!/bin/bash
+
+# Use jq to extract the fields
+jq -r '
+{
+  name: .name,
+  height: (.height / 10),
+  weight: (.weight / 10),
+  type: .types[0].type.name
+} | "\(.name) is of type \(.type), weighs \(.weight)kg, and is \(.height)m tall."
+' data.json |
+# Capitalize the first letter of name and type
+sed -E 's/^([a-z])/\U\1/; s/type ([a-z])/\U\1/'
