@@ -1,22 +1,20 @@
 #!/bin/bash
 
-# Create directory to store data if it doesn't exist
+# Create directory to store data
 mkdir -p pokemon_data
+ERROR_LOG="errors.txt"
+: > "$ERROR_LOG"
 
-# List of Pokémon (lowercase for API URLs)
+# List of Pokémon
 pokemon_list=("bulbasaur" "ivysaur" "venusaur" "charmander" "charmeleon")
 
-# Error log file
-ERROR_LOG="errors.txt"
-: > "$ERROR_LOG"  # Clear error log
-
-# Function to fetch a single Pokémon's data
+# Function to fetch Pokémon data
 fetch_pokemon() {
-    name=$1
-    echo "Fetching data for $name..."
+    local name=$1
+    local attempt=1
+    local success=false
 
-    attempt=1
-    success=false
+    echo "Fetching data for $name..."
 
     while [ $attempt -le 3 ]; do
         response=$(curl -s -f "https://pokeapi.co/api/v2/pokemon/$name")
@@ -37,12 +35,27 @@ fetch_pokemon() {
     fi
 }
 
-# Loop and start each fetch in the background
+# Start all fetches in background and track PIDs
+pids=()
+
 for name in "${pokemon_list[@]}"; do
     fetch_pokemon "$name" &
+    pids+=($!)
 done
 
-# Wait for all background processes to complete
-wait
+# Show running jobs
+echo -e "\n⏳ Background jobs running:"
+jobs
 
-echo "✅ All fetches completed."
+# Wait for all background jobs
+for pid in "${pids[@]}"; do
+    wait "$pid"
+done
+
+echo -e "\n✅ All fetches completed."
+
+# Check if any jobs are still hanging (shouldn't be, but good practice)
+if jobs | grep -q "Running"; then
+    echo "⚠️ Hanging jobs detected. Killing them..."
+    jobs -p | xargs kill -9
+fi
