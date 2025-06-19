@@ -1,22 +1,8 @@
 #!/bin/bash
 
-# Extract relevant fields with jq
-jq -r '[.name, .types[0].type.name, .weight, .height] | @tsv' data.json |
-awk -F '\t' '{
-  name=$1
-  type=$2
-  weight=int($3 / 10)     # convert to integer kg
-  height=sprintf("%.1f", $4 / 10)  # float with 1 decimal
+name=$(jq -r '.name' data.json | sed 's/.*/\u&/')
+type=$(jq -r '.types[0].type.name' data.json | sed 's/.*/\u&/')
+weight=$(jq -r '.weight' data.json | awk '{printf "%.0fkg", $1/10}')
+height=$(jq -r '.height' data.json | awk '{printf "%.1fm", $1/10}')
 
-  # Capitalize name and type using sed via shell command
-  cmd = "echo " name " | sed \"s/.*/\\u&/\""
-  cmd | getline cap_name
-  close(cmd)
-
-  cmd = "echo " type " | sed \"s/.*/\\u&/\""
-  cmd | getline cap_type
-  close(cmd)
-
-  # Final output
-  printf "%s is of type %s, weighs %dkg, and is %sm tall.\n", cap_name, cap_type, weight, height
-}'
+echo "$name is of type $type, weighs $weight, and is $height tall."
